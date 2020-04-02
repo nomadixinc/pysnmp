@@ -34,10 +34,11 @@ except ImportError:
 PY_SUFFIXES = SOURCE_SUFFIXES + BYTECODE_SUFFIXES
 
 try:
-    from errno import ENOENT
+    from errno import ENOENT, EACCES
 
 except ImportError:
     ENOENT = -1
+    EACCES = 13
 
 if sys.version_info[0] <= 2:
     import types
@@ -106,7 +107,7 @@ class __AbstractMibSource(object):
                 pycData, pycPath = self._getData(pycFile, 'rb')
 
             except IOError as exc:
-                if ENOENT == -1 or exc.errno == ENOENT:
+                if ENOENT == -1 or why.errno in (ENOENT, EACCES):
                     debug.logger & debug.FLAG_BLD and debug.logger(
                         'file %s access error: %s' % (pycFile, exc))
 
@@ -137,7 +138,7 @@ class __AbstractMibSource(object):
                 pyTime = self._getTimestamp(pyFile)
 
             except IOError as exc:
-                if ENOENT == -1 or exc.errno == ENOENT:
+                if ENOENT == -1 or exc.errno in (ENOENT, EACCES):
                     debug.logger & debug.FLAG_BLD and debug.logger(
                         'file %s access error: %s' % (pyFile, exc))
 
