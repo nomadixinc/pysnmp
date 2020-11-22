@@ -4,6 +4,8 @@
 # Copyright (c) 2005-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysnmp/license.html
 #
+import ipaddress
+
 from pyasn1.compat.octets import null
 
 from pysnmp import error
@@ -456,13 +458,23 @@ def addTargetAddr(snmpEngine, addrName, transportDomain, transportAddress,
 
     if transportDomain[:len(SNMP_UDP_DOMAIN)] == SNMP_UDP_DOMAIN:
         SnmpUDPAddress, = mibBuilder.importSymbols('SNMPv2-TM', 'SnmpUDPAddress')
-        transportAddress = SnmpUDPAddress(transportAddress)
-
+        # SnmpUDPAddressIPv6, = mibBuilder.importSymbols('SNMPv2-TM', 'SnmpUDPAddressIPv6')
+        TransportAddressIPv6, = mibBuilder.importSymbols('TRANSPORT-ADDRESS-MIB', 'TransportAddressIPv6')
+        #transportAddress = SnmpUDPAddress(transportAddress)
+        try:
+            _ = ipaddress.IPv6Address(transportAddress[0])
+            transportAddress = TransportAddressIPv6(transportAddress)
+        except ipaddress.AddressValueError:
+            transportAddress = SnmpUDPAddress(transportAddress)
+        print('+'*20, transportAddress)
         if sourceAddress is None:
             sourceAddress = ('0.0.0.0', 0)
-
-        sourceAddress = SnmpUDPAddress(sourceAddress)
-
+            # sourceAddress = ('::1', 0)
+        try:
+            _ = ipaddress.IPv6Address(sourceAddress[0])
+            sourceAddress = TransportAddressIPv6(sourceAddress)
+        except ipaddress.AddressValueError:
+            sourceAddress = SnmpUDPAddress(sourceAddress)
     elif transportDomain[:len(SNMP_UDP6_DOMAIN)] == SNMP_UDP6_DOMAIN:
         TransportAddressIPv6, = mibBuilder.importSymbols('TRANSPORT-ADDRESS-MIB', 'TransportAddressIPv6')
         transportAddress = TransportAddressIPv6(transportAddress)

@@ -4,6 +4,7 @@
 # Copyright (c) 2005-2019, Ilya Etingof <etingof@gmail.com>
 # License: http://snmplabs.com/pysnmp/license.html
 #
+import ipaddress
 from pysnmp.entity import config
 from pysnmp.smi.error import NoSuchInstanceError
 from pysnmp.smi.error import SmiError
@@ -70,17 +71,38 @@ def getTargetAddr(snmpEngine, snmpTargetAddrName):
             raise SmiError('Target %s not configured to LCD' % snmpTargetAddrName)
 
         transport = snmpEngine.transportDispatcher.getTransport(snmpTargetAddrTDomain)
+        print('trans-'*10, transport)
 
         if snmpTargetAddrTDomain[:len(config.SNMP_UDP_DOMAIN)] == config.SNMP_UDP_DOMAIN:
+            print('!'*10, snmpTargetAddrTAddress)
+            print('!'*10, snmpTargetAddrTDomain[:len(config.SNMP_UDP_DOMAIN)] )
             SnmpUDPAddress, = mibBuilder.importSymbols('SNMPv2-TM', 'SnmpUDPAddress')
+            SnmpUDPAddressIPv6, = mibBuilder.importSymbols('SNMPv2-TM', 'SnmpUDPAddressIPv6')
+            TransportAddressIPv6, = mibBuilder.importSymbols('TRANSPORT-ADDRESS-MIB', 'TransportAddressIPv6')
+            try:
+                _ = ipaddress.IPv6Address(snmpTargetAddrTAddress)
+                #snmp_cls = TransportAddressIPv6
+                # dst_snmp_cls = SnmpUDPAddressIPv6
+                dst_snmp_cls = TransportAddressIPv6
+            except ipaddress.AddressValueError:
+                dst_snmp_cls = SnmpUDPAddress
+            try:
+                _ = ipaddress.IPv6Address(snmpSourceAddrTAddress)
+                # src_snmp_cls = TransportAddressIPv6
+                src_snmp_cls = SnmpUDPAddressIPv6
+            except ipaddress.AddressValueError:
+                src_snmp_cls = SnmpUDPAddress
+
+
+            dst_snmp_cls = TransportAddressIPv6
+            # src_snmp_cls = TransportAddressIPv6
 
             snmpTargetAddrTAddress = transport.ADDRESS_TYPE(
-                SnmpUDPAddress(snmpTargetAddrTAddress)
-            ).setLocalAddress(SnmpUDPAddress(snmpSourceAddrTAddress))
+                dst_snmp_cls(snmpTargetAddrTAddress)
+            ).setLocalAddress(src_snmp_cls(snmpSourceAddrTAddress))
 
         elif snmpTargetAddrTDomain[:len(config.SNMP_UDP6_DOMAIN)] == config.SNMP_UDP6_DOMAIN:
             TransportAddressIPv6, = mibBuilder.importSymbols('TRANSPORT-ADDRESS-MIB', 'TransportAddressIPv6')
-
             snmpTargetAddrTAddress = transport.ADDRESS_TYPE(
                 TransportAddressIPv6(snmpTargetAddrTAddress)
             ).setLocalAddress(TransportAddressIPv6(snmpSourceAddrTAddress))

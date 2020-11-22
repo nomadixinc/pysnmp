@@ -10,7 +10,7 @@ from pysnmp.carrier.twisted.dgram import udp
 from pysnmp.error import PySnmpError
 from pysnmp.hlapi.transport import AbstractTransportTarget
 
-__all__ = ['UdpTransportTarget']
+__all__ = ['UdpTransportTarget', 'UdpTransportTargetIPv6']
 
 
 class UdpTransportTarget(AbstractTransportTarget):
@@ -58,3 +58,18 @@ class UdpTransportTarget(AbstractTransportTarget):
             raise PySnmpError(
                 'Bad IPv4/UDP transport address %s: '
                 '%s' % ('@'.join(str(x) for x in transportAddr), exc))
+
+
+class UdpTransportTargetIPv6(UdpTransportTarget):
+
+    def _resolveAddr(self, transportAddr):
+        try:
+            return socket.getaddrinfo(
+                transportAddr[0], transportAddr[1], socket.AF_INET6,
+                socket.SOCK_DGRAM, socket.IPPROTO_UDP)[0][4][:2]
+        except socket.gaierror as exc:
+            raise PySnmpError(
+                'Bad IPv6/UDP transport address %s: '
+                '%s' % ('@'.join(str(x) for x in transportAddr), exc))
+
+

@@ -11,10 +11,9 @@
 #
 
 try:
-    from socket import inet_ntop, inet_pton, AF_INET
-
+    from socket import inet_ntop, inet_pton, AF_INET, AF_INET6
 except ImportError:
-    from socket import inet_ntoa, inet_aton, AF_INET
+    from socket import inet_ntoa, inet_aton, AF_INET, AF_INET6
 
     inet_ntop = lambda x, y: inet_ntoa(y)
     inet_pton = lambda x, y: inet_aton(y)
@@ -168,6 +167,38 @@ network-byte order 5-6 UDP-port network-byte order
         return self.__asSocketAddress()[item]
 
 
+class SnmpUDPAddressIPv6(TextualConvention, OctetString):
+    description = 'Represents a UDP over IPv6 address: octets contents encoding 1-4 IP-address network-byte order 5-6 UDP-port network-byte order '
+    status = 'current'
+    subtypeSpec = OctetString.subtypeSpec #+ ValueSizeConstraint(40, 40)
+    displayHint = "[ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff]"
+    fixedLength = 40
+
+
+    def prettyIn(self, value):
+        if isinstance(value, tuple):
+            value = inet_pton(AF_INET6, value[0]) #+ int2oct((value[1] >> 8) & 0xff) + int2oct(value[1] & 0xff)
+        return OctetString.prettyIn(self, value)
+
+    # Socket address syntax corecion
+    def __asSocketAddress(self):
+        if not hasattr(self, '__tuple_value'):
+            v = self.asOctets()
+
+            print('#'*80, v)
+            self.__tuple_value = (
+                inet_ntop(AF_INET6, v[:-2]),
+                oct2int(v[4]) << 8 | oct2int(v[5])
+            )
+        return self.__tuple_value
+
+    def __iter__(self):
+        return iter(self.__asSocketAddress())
+
+    def __getitem__(self, item):
+        return self.__asSocketAddress()[item]
+
+
 class SnmpOSIAddress(TextualConvention, OctetString):
     status = "current"
     displayHint = "*1x:/1x:"
@@ -292,17 +323,19 @@ address is of type SnmpUDPAddress.
 """)
 
 mibBuilder.exportSymbols(
-    "SNMPv2-TM",
-    **{"SnmpUDPAddress": SnmpUDPAddress,
-       "SnmpOSIAddress": SnmpOSIAddress,
-       "SnmpNBPAddress": SnmpNBPAddress,
-       "SnmpIPXAddress": SnmpIPXAddress,
-       "snmpUDPDomain": snmpUDPDomain,
-       "snmpCLNSDomain": snmpCLNSDomain,
-       "snmpCONSDomain": snmpCONSDomain,
-       "snmpDDPDomain": snmpDDPDomain,
-       "snmpIPXDomain": snmpIPXDomain,
-       "rfc1157Proxy": rfc1157Proxy,
-       "rfc1157Domain": rfc1157Domain,
-       "snmpv2tm": snmpv2tm}
+    "SNMPv2-TM", **{
+        "SnmpUDPAddress": SnmpUDPAddress,
+        "SnmpUDPAddressIPv6": SnmpUDPAddressIPv6,
+        "SnmpOSIAddress": SnmpOSIAddress,
+        "SnmpNBPAddress": SnmpNBPAddress,
+        "SnmpIPXAddress": SnmpIPXAddress,
+        "snmpUDPDomain": snmpUDPDomain,
+        "snmpCLNSDomain": snmpCLNSDomain,
+        "snmpCONSDomain": snmpCONSDomain,
+        "snmpDDPDomain": snmpDDPDomain,
+        "snmpIPXDomain": snmpIPXDomain,
+        "rfc1157Proxy": rfc1157Proxy,
+        "rfc1157Domain": rfc1157Domain,
+        "snmpv2tm": snmpv2tm
+    }
 )

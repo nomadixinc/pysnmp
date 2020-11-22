@@ -26,10 +26,9 @@ class UdpTwistedTransport(DgramTwistedTransport):
     def openClientMode(self, iface=None):
         if iface is None:
             iface = ('', 0)
-
+            # iface = ('::1', 0)
         try:
             self._lport = reactor.listenUDP(iface[1], self, iface[0])
-
         except Exception as exc:
             raise error.CarrierError(exc)
 

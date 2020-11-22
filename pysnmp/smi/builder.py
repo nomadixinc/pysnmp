@@ -107,7 +107,7 @@ class __AbstractMibSource(object):
                 pycData, pycPath = self._getData(pycFile, 'rb')
 
             except IOError as exc:
-                if ENOENT == -1 or why.errno in (ENOENT, EACCES):
+                if ENOENT == -1 or exc.errno in (ENOENT, EACCES):
                     debug.logger & debug.FLAG_BLD and debug.logger(
                         'file %s access error: %s' % (pycFile, exc))
 
@@ -270,15 +270,19 @@ class DirMibSource(__AbstractMibSource):
 
     def _getData(self, fl, mode):
         path = os.path.join(self._srcName, '*')
-
         try:
-            if fl in os.listdir(self._srcName):  # make FS case-sensitive
+            if fl in os.listdir(self._srcName):
                 path = os.path.join(self._srcName, fl)
                 fp = open(path, mode)
                 data = fp.read()
                 fp.close()
                 return data, path
-
+            # elif fl[:-1] in os.listdir(self._srcName):  # make FS case-sensitive
+            #     path = os.path.join(self._srcName, fl[:-1])
+            #     fp = open(path, mode)
+            #     data = fp.read()
+            #     fp.close()
+            #     return data, path
         except (IOError, OSError) as exc:
             msg = 'File or directory %s access error: %s' % (path, exc)
 
